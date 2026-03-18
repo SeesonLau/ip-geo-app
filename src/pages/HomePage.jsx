@@ -8,8 +8,6 @@ import { useToast } from '../hooks/useToast'
 
 const API = import.meta.env.VITE_API_URL
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export default function HomePage() {
   const navigate = useNavigate()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -28,7 +26,6 @@ export default function HomePage() {
   const [selected, setSelected] = useState([])
   const [loading, setLoading] = useState(false)
 
-  // Clock
   useEffect(() => {
     const tick = () => {
       const now = new Date()
@@ -174,10 +171,8 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 transition-colors">
       <ToastContainer toasts={toasts} />
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      {/* Header */}
       <header className="bg-slate-900 dark:bg-slate-950 border-b border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
-
-        {/* Left: theme toggle + clock */}
         <button
           onClick={toggleTheme}
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 text-xs font-medium transition-colors"
@@ -186,10 +181,8 @@ export default function HomePage() {
           <span>{time}</span>
         </button>
 
-        {/* Center: title */}
         <span className="text-slate-100 font-bold text-base tracking-tight">IP Geo JLabs Basic Assessment Exam</span>
 
-        {/* Right: email + logout */}
         <div className="flex items-center gap-3">
           <span className="text-slate-400 text-sm hidden sm:block">{user.email}</span>
           <button
@@ -201,10 +194,10 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ── Body ───────────────────────────────────────────────────────────── */}
+      {/* Body */}
       <div className="flex gap-4 p-4 flex-1 items-stretch min-h-0">
 
-        {/* ── Left Panel ───────────────────────────────────────────────────── */}
+        {/* Left Panel */}
         <div className="flex flex-col gap-4 flex-1 min-w-0">
 
           {/* Search Card */}
@@ -286,7 +279,6 @@ export default function HomePage() {
 
           {/* History Card */}
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
-            {/* History Header */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
@@ -321,14 +313,12 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* History error */}
             {historyError && (
               <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 mb-3">
                 {historyError}
               </p>
             )}
 
-            {/* History list */}
             {!historyError && history.length === 0 ? (
               <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-5">
                 No searches yet. Enter an IP above to get started.
@@ -384,7 +374,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Right Panel (Map) ─────────────────────────────────────────────── */}
+        {/* Right Panel - Map */}
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-96">
             {coords ? (
