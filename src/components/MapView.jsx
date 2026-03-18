@@ -27,10 +27,10 @@ export default function MapView({ coords, label }) {
       center={[coords.lat, coords.lng]}
       zoom={10}
       style={{ height: '100%', minHeight: '400px', width: '100%' }}
+      attributionControl={false}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; OpenStreetMap contributors'
       />
       <Marker position={[coords.lat, coords.lng]}>
         <Popup>{label || 'Location'}</Popup>
