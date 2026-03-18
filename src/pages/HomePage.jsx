@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { Sun, Moon, Globe } from 'lucide-react'
 import MapView from '../components/MapView'
 
-const API = 'http://localhost:8000'
+const API = import.meta.env.VITE_API_URL
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -11,6 +14,8 @@ export default function HomePage() {
   const token = localStorage.getItem('token')
   const authHeaders = { Authorization: `Bearer ${token}` }
 
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark')
+  const [time, setTime] = useState('')
   const [geoData, setGeoData] = useState(null)
   const [ipInput, setIpInput] = useState('')
   const [error, setError] = useState('')
@@ -18,6 +23,24 @@ export default function HomePage() {
   const [history, setHistory] = useState([])
   const [selected, setSelected] = useState([])
   const [loading, setLoading] = useState(false)
+
+  // Clock
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date()
+      setTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const toggleTheme = () => {
+    const next = !darkMode
+    setDarkMode(next)
+    localStorage.setItem('theme', next ? 'dark' : 'light')
+    document.documentElement.classList.toggle('dark', next)
+  }
 
   const isValidIp = (ip) =>
     /^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$/.test(ip)
@@ -101,11 +124,7 @@ export default function HomePage() {
   }
 
   const toggleSelectAll = () => {
-    if (selected.length === history.length) {
-      setSelected([])
-    } else {
-      setSelected(history.map((h) => h.id))
-    }
+    setSelected(selected.length === history.length ? [] : history.map((h) => h.id))
   }
 
   const handleDeleteSelected = async () => {
@@ -136,89 +155,139 @@ export default function HomePage() {
   const formatDate = (dateStr) => {
     const d = new Date(dateStr)
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
-      ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+      ' · ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   }
 
   const allSelected = history.length > 0 && selected.length === history.length
+  const coords = getCoords()
 
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <h2 style={styles.headerTitle}>IP Geo Lookup</h2>
-        <div style={styles.headerRight}>
-          <span style={styles.userEmail}>{user.email}</span>
-          <button style={styles.logoutBtn} onClick={handleLogout}>Logout</button>
+    <div className="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 transition-colors">
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <header className="bg-slate-900 dark:bg-slate-950 border-b border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
+
+        {/* Left: theme toggle + clock */}
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 text-xs font-medium transition-colors"
+        >
+          {darkMode ? <Sun size={15} /> : <Moon size={15} />}
+          <span>{time}</span>
+        </button>
+
+        {/* Center: title */}
+        <span className="text-slate-100 font-bold text-base tracking-tight">IP Geo JLabs Basic Assessment Exam</span>
+
+        {/* Right: email + logout */}
+        <div className="flex items-center gap-3">
+          <span className="text-slate-400 text-sm hidden sm:block">{user.email}</span>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 text-xs font-medium transition-colors"
+          >
+            Logout
+          </button>
         </div>
-      </div>
+      </header>
 
-      <div style={styles.body}>
-        {/* Left Panel */}
-        <div style={styles.leftPanel}>
+      {/* ── Body ───────────────────────────────────────────────────────────── */}
+      <div className="flex gap-4 p-4 flex-1 items-stretch min-h-0">
 
-          {/* Search */}
-          <div style={styles.card}>
-            <h3 style={styles.cardTitle}>Search IP</h3>
-            <div style={styles.searchRow}>
+        {/* ── Left Panel ───────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-4 flex-1 min-w-0">
+
+          {/* Search Card */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
+              Search IP Address
+            </p>
+            <div className="flex gap-2">
               <input
-                style={styles.input}
+                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm outline-none focus:border-indigo-500 dark:focus:border-indigo-400 transition-colors"
                 type="text"
                 placeholder="e.g. 8.8.8.8"
                 value={ipInput}
                 onChange={(e) => setIpInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
-              <button style={styles.btnPrimary} onClick={handleSearch} disabled={loading}>
-                {loading ? '...' : 'Search'}
+              <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60"
+              >
+                {loading ? '…' : 'Search'}
               </button>
-              <button style={styles.btnSecondary} onClick={handleClear} disabled={loading}>
+              <button
+                onClick={handleClear}
+                disabled={loading}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-sm rounded-lg transition-colors disabled:opacity-60"
+              >
                 Clear
               </button>
             </div>
-            {error && <p style={styles.error}>{error}</p>}
+            {error && (
+              <p className="mt-2.5 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
           </div>
 
-          {/* Geo Info */}
-          {geoData && !loading && (
-            <div style={styles.card}>
-              <h3 style={styles.cardTitle}>Geo Information</h3>
-              <table style={styles.table}>
-                <tbody>
-                  {Object.entries(geoData)
-                    .filter(([key]) => key !== 'readme')
-                    .map(([key, val]) => (
-                      <tr key={key} style={styles.tableRow}>
-                        <td style={styles.tdKey}>{key}</td>
-                        <td style={styles.tdVal}>{String(val)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+          {/* Geo Info Card */}
+          {geoData && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
+                Geo Information
+              </p>
+              {loading ? (
+                <p className="text-sm text-slate-400 dark:text-slate-500">Loading…</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <tbody>
+                    {Object.entries(geoData)
+                      .filter(([key]) => key !== 'readme')
+                      .map(([key, val], i) => (
+                        <tr key={key} className={i % 2 === 1 ? 'bg-slate-50 dark:bg-slate-900/50' : ''}>
+                          <td className="py-1.5 px-2 text-xs font-semibold text-slate-400 dark:text-slate-500 capitalize w-2/5">{key}</td>
+                          <td className="py-1.5 px-2 text-slate-800 dark:text-slate-200 break-all">{String(val)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
 
-          {/* History */}
-          <div style={styles.card}>
-            <div style={styles.historyHeader}>
-              <div style={styles.historyTitleRow}>
-                <h3 style={styles.cardTitle}>Search History</h3>
+          {/* History Card */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+            {/* History Header */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  Search History
+                </p>
                 {history.length > 0 && (
-                  <span style={styles.badge}>{history.length}</span>
+                  <span className="bg-indigo-600 dark:bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {history.length}
+                  </span>
                 )}
               </div>
               {history.length > 0 && (
-                <div style={styles.historyActions}>
-                  <label style={styles.selectAllLabel}>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={allSelected}
                       onChange={toggleSelectAll}
-                      style={styles.checkbox}
+                      className="cursor-pointer accent-indigo-600"
                     />
-                    Select all
+                    All
                   </label>
                   {selected.length > 0 && (
-                    <button style={styles.btnDanger} onClick={handleDeleteSelected}>
+                    <button
+                      onClick={handleDeleteSelected}
+                      className="px-2.5 py-1 bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
                       Delete ({selected.length})
                     </button>
                   )}
@@ -226,50 +295,61 @@ export default function HomePage() {
               )}
             </div>
 
+            {/* History error */}
             {historyError && (
-              <p style={styles.historyErrorMsg}>{historyError}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 mb-3">
+                {historyError}
+              </p>
             )}
 
+            {/* History list */}
             {!historyError && history.length === 0 ? (
-              <p style={styles.emptyHistory}>No searches yet. Enter an IP above to get started.</p>
+              <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-5">
+                No searches yet. Enter an IP above to get started.
+              </p>
             ) : !historyError && (
-              <div style={styles.historyList}>
+              <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto scrollbar-thin pr-1">
                 {history.map((item) => {
                   const isActive = geoData?.ip === item.ip
                   const isChecked = selected.includes(item.id)
                   return (
                     <div
                       key={item.id}
-                      style={{
-                        ...styles.historyItem,
-                        ...(isActive ? styles.historyItemActive : {}),
-                        ...(isChecked ? styles.historyItemChecked : {}),
-                      }}
+                      className={[
+                        'flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-colors',
+                        isActive
+                          ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-700'
+                          : isChecked
+                          ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                          : 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600',
+                      ].join(' ')}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => toggleSelect(item.id)}
-                        style={styles.checkbox}
+                        className="cursor-pointer accent-indigo-600 shrink-0"
                       />
                       <div
-                        style={styles.historyContent}
+                        className="flex-1 min-w-0 cursor-pointer"
                         onClick={() => handleHistoryClick(item)}
                       >
-                        <div style={styles.historyIp}>{item.ip}</div>
-                        <div style={styles.historyMeta}>
-                          {item.data.city && item.data.country
-                            ? `${item.data.city}, ${item.data.country}`
-                            : item.data.country || 'Unknown location'}
-                          {item.data.org && (
-                            <span style={styles.historyOrg}> · {item.data.org}</span>
-                          )}
+                        <div className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{item.ip}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                          {[item.data.city, item.data.region, item.data.country].filter(Boolean).join(', ')}
+                          {item.data.org && <span className="text-slate-400 dark:text-slate-500"> · {item.data.org}</span>}
                         </div>
                         {item.createdAt && (
-                          <div style={styles.historyTime}>{formatDate(item.createdAt)}</div>
+                          <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                            {formatDate(item.createdAt)}
+                          </div>
                         )}
                       </div>
-                      {isActive && <span style={styles.activePill}>Viewing</span>}
+                      {isActive && (
+                        <span className="text-xs bg-indigo-600 dark:bg-indigo-500 text-white px-2 py-0.5 rounded-full font-semibold shrink-0">
+                          Viewing
+                        </span>
+                      )}
                     </div>
                   )
                 })}
@@ -278,179 +358,21 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Map */}
-        <div style={styles.rightPanel}>
-          {getCoords()
-            ? <MapView coords={getCoords()} label={geoData?.city} />
-            : (
-              <div style={styles.mapPlaceholder}>
-                <span style={styles.mapPlaceholderText}>Map will appear here after a search</span>
+        {/* ── Right Panel (Map) ─────────────────────────────────────────────── */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-96">
+            {coords ? (
+              <MapView coords={coords} label={geoData?.city} />
+            ) : (
+              <div className="h-full min-h-96 bg-slate-200 dark:bg-slate-800 flex flex-col items-center justify-center gap-2">
+                <Globe size={32} strokeWidth={1.5} />
+                <p className="text-sm text-slate-400 dark:text-slate-500">Map will appear here after a search</p>
               </div>
-            )
-          }
+            )}
+          </div>
         </div>
+
       </div>
     </div>
   )
-}
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    backgroundColor: '#f0f2f5',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  header: {
-    backgroundColor: '#4f46e5',
-    padding: '1rem 2rem',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-  },
-  headerTitle: { color: '#fff', margin: 0, fontSize: '1.2rem' },
-  headerRight: { display: 'flex', alignItems: 'center', gap: '1rem' },
-  userEmail: { color: '#c7d2fe', fontSize: '0.9rem' },
-  logoutBtn: {
-    padding: '0.4rem 1rem',
-    backgroundColor: '#fff',
-    color: '#4f46e5',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontWeight: 600,
-  },
-  body: { display: 'flex', gap: '1.5rem', padding: '1.5rem', flex: 1, alignItems: 'flex-start' },
-  leftPanel: { flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0 },
-  rightPanel: { flex: 1, minHeight: '500px', borderRadius: '8px', overflow: 'hidden' },
-  card: {
-    backgroundColor: '#fff',
-    padding: '1.25rem',
-    borderRadius: '8px',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-  },
-  cardTitle: { margin: '0 0 1rem 0', color: '#111', fontSize: '0.95rem', fontWeight: 700 },
-  searchRow: { display: 'flex', gap: '0.5rem' },
-  input: {
-    flex: 1,
-    padding: '0.6rem 0.75rem',
-    borderRadius: '6px',
-    border: '1px solid #d1d5db',
-    fontSize: '0.95rem',
-    outline: 'none',
-  },
-  btnPrimary: {
-    padding: '0.6rem 1.1rem',
-    backgroundColor: '#4f46e5',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontWeight: 600,
-    fontSize: '0.9rem',
-  },
-  btnSecondary: {
-    padding: '0.6rem 1rem',
-    backgroundColor: '#e5e7eb',
-    color: '#374151',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '0.9rem',
-  },
-  btnDanger: {
-    padding: '0.35rem 0.85rem',
-    backgroundColor: '#ef4444',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '0.82rem',
-    fontWeight: 600,
-  },
-  error: { color: '#dc2626', fontSize: '0.85rem', marginTop: '0.6rem' },
-
-  // Geo table
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' },
-  tableRow: { borderBottom: '1px solid #f3f4f6' },
-  tdKey: {
-    padding: '0.4rem 0.5rem',
-    fontWeight: 600,
-    color: '#6b7280',
-    width: '38%',
-    textTransform: 'capitalize',
-    verticalAlign: 'top',
-  },
-  tdVal: { padding: '0.4rem 0.5rem', color: '#111', wordBreak: 'break-all' },
-
-  // History
-  historyHeader: { marginBottom: '0.75rem' },
-  historyTitleRow: { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' },
-  badge: {
-    backgroundColor: '#4f46e5',
-    color: '#fff',
-    borderRadius: '999px',
-    fontSize: '0.72rem',
-    fontWeight: 700,
-    padding: '0.1rem 0.55rem',
-  },
-  historyActions: { display: 'flex', alignItems: 'center', gap: '0.75rem' },
-  selectAllLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.4rem',
-    fontSize: '0.83rem',
-    color: '#6b7280',
-    cursor: 'pointer',
-  },
-  checkbox: { cursor: 'pointer', accentColor: '#4f46e5', width: '15px', height: '15px' },
-  emptyHistory: { color: '#9ca3af', fontSize: '0.875rem', textAlign: 'center', padding: '1rem 0' },
-  historyErrorMsg: { color: '#dc2626', fontSize: '0.82rem', padding: '0.5rem 0' },
-  historyList: { display: 'flex', flexDirection: 'column', gap: '0.4rem' },
-  historyItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    padding: '0.65rem 0.75rem',
-    borderRadius: '6px',
-    border: '1px solid #f3f4f6',
-    backgroundColor: '#fafafa',
-    transition: 'background 0.15s',
-    cursor: 'default',
-  },
-  historyItemActive: {
-    border: '1px solid #c7d2fe',
-    backgroundColor: '#eef2ff',
-  },
-  historyItemChecked: {
-    border: '1px solid #fca5a5',
-    backgroundColor: '#fff5f5',
-  },
-  historyContent: { flex: 1, cursor: 'pointer', minWidth: 0 },
-  historyIp: { fontWeight: 700, fontSize: '0.9rem', color: '#4f46e5' },
-  historyMeta: { fontSize: '0.8rem', color: '#374151', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  historyOrg: { color: '#9ca3af' },
-  historyTime: { fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.2rem' },
-  activePill: {
-    fontSize: '0.72rem',
-    backgroundColor: '#4f46e5',
-    color: '#fff',
-    borderRadius: '999px',
-    padding: '0.15rem 0.55rem',
-    fontWeight: 600,
-    flexShrink: 0,
-  },
-
-  // Map placeholder
-  mapPlaceholder: {
-    height: '100%',
-    minHeight: '600px',
-    backgroundColor: '#e5e7eb',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapPlaceholderText: { color: '#9ca3af', fontSize: '0.9rem' },
 }
