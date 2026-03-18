@@ -4,8 +4,9 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 
-// Apply saved theme before first render
-if (localStorage.getItem('theme') === 'dark') {
+// Apply saved theme before first render — default is dark
+const savedTheme = localStorage.getItem('theme')
+if (savedTheme !== 'light') {
   document.documentElement.classList.add('dark')
 }
 

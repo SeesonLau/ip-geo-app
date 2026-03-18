@@ -18,7 +18,7 @@ export default function HomePage() {
 
   const { toasts, addToast } = useToast()
 
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark')
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') !== 'light')
   const [time, setTime] = useState('')
   const [geoData, setGeoData] = useState(null)
   const [ipInput, setIpInput] = useState('')
