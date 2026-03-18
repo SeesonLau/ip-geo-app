@@ -10,7 +10,13 @@ export default function HomePage() {
   const [geoData, setGeoData] = useState(null)
   const [ipInput, setIpInput] = useState('')
   const [error, setError] = useState('')
-  const [history, setHistory] = useState([])
+  const [history, setHistory] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('searchHistory')) || []
+    } catch {
+      return []
+    }
+  })
   const [selected, setSelected] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -43,6 +49,10 @@ export default function HomePage() {
   useEffect(() => {
     fetchGeo()
   }, [])
+
+  useEffect(() => {
+    localStorage.setItem('searchHistory', JSON.stringify(history))
+  }, [history])
 
   const handleSearch = () => {
     if (!isValidIp(ipInput)) {
@@ -77,6 +87,7 @@ export default function HomePage() {
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    localStorage.removeItem('searchHistory')
     navigate('/login')
   }
 
