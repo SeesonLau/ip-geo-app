@@ -14,7 +14,7 @@ React frontend for the IP Geo JLabs Basic Assessment Exam. Allows authenticated 
 
 ## Requirements
 
-- Node.js v18+
+- Node.js v18+ (developed and tested on v20.17.0)
 - `ip-geo-api` backend **must be running** at http://localhost:8000 before starting this app
 
 ---
@@ -29,13 +29,13 @@ npm install
 
 ### 2. Configure environment variables
 
-Copy the example file:
+A `.env` file is already included. If it is missing, copy the example:
 
 ```bash
 cp .env.example .env
 ```
 
-The default `.env` should contain:
+The `.env` should contain:
 
 ```env
 VITE_API_URL=http://localhost:8000
@@ -102,6 +102,8 @@ The app will be available at: **http://localhost:5173**
 - Theme preference saved to `localStorage` and applied on page load (no flash)
 - Scrollable history list when entries overflow
 - Responsive layout: left panel (search + info + history) + right panel (map)
+- Toast notifications for delete and logout actions
+- Spinner animation on Search, Clear, and Login buttons during loading
 
 ---
 
