@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Sun, Moon, Globe } from 'lucide-react'
 import MapView from '../components/MapView'
+import ToastContainer from '../components/ToastContainer'
+import { useToast } from '../hooks/useToast'
 
 const API = import.meta.env.VITE_API_URL
 
@@ -13,6 +15,8 @@ export default function HomePage() {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const token = localStorage.getItem('token')
   const authHeaders = { Authorization: `Bearer ${token}` }
+
+  const { toasts, addToast } = useToast()
 
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark')
   const [time, setTime] = useState('')
@@ -133,17 +137,22 @@ export default function HomePage() {
         headers: authHeaders,
         data: { ids: selected },
       })
+      const count = selected.length
       setHistory((prev) => prev.filter((h) => !selected.includes(h.id)))
       setSelected([])
+      addToast(`Deleted ${count} ${count === 1 ? 'entry' : 'entries'}.`, 'delete')
     } catch {
       setError('Failed to delete history.')
     }
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    navigate('/login')
+    addToast('Logged out successfully.', 'success')
+    setTimeout(() => {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      navigate('/login')
+    }, 900)
   }
 
   const getCoords = () => {
@@ -163,6 +172,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 transition-colors">
+      <ToastContainer toasts={toasts} />
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="bg-slate-900 dark:bg-slate-950 border-b border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
@@ -214,16 +224,32 @@ export default function HomePage() {
               <button
                 onClick={handleSearch}
                 disabled={loading}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60"
               >
-                {loading ? '…' : 'Search'}
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Searching…
+                  </>
+                ) : 'Search'}
               </button>
               <button
                 onClick={handleClear}
                 disabled={loading}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-sm rounded-lg transition-colors disabled:opacity-60"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-sm rounded-lg transition-colors disabled:opacity-60"
               >
-                Clear
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Clearing…
+                  </>
+                ) : 'Clear'}
               </button>
             </div>
             {error && (
